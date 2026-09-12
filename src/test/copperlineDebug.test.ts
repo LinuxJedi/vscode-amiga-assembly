@@ -38,9 +38,20 @@ describe('Copperline debug configuration', () => {
         expect(resolved).not.to.have.property('debugServer');
     });
 
-    it('preserves an explicit stopOnEntry false and disables it for Run Without Debugging', () => {
-        expect(resolve({ stopOnEntry: false }).stopOnEntry).to.equal(false);
-        expect(resolve({ stopOnEntry: true, noDebug: true }).stopOnEntry).to.equal(false);
+    for (const request of ['launch', 'attach']) {
+        it(`preserves ${request} stopOnEntry defaults and explicit values`, () => {
+            const options = { request, copperlineOptions: { controlInfo: '/session.json' } };
+            expect(resolve(options).stopOnEntry).to.equal(request === 'launch');
+            for (const stopOnEntry of [true, false]) {
+                expect(resolve({ ...options, stopOnEntry }).stopOnEntry).to.equal(stopOnEntry);
+                expect(resolve({ ...options, stopOnEntry, noDebug: true }).stopOnEntry).to.equal(false);
+            }
+        });
+    }
+
+    it('uses the attach default with an address and token', () => {
+        const resolved = resolve({ request: 'attach', copperlineOptions: { address: '127.0.0.1:1234', token: 'test-token' } });
+        expect(resolved.stopOnEntry).to.equal(false);
     });
 
     it('uses the selected workspace folder, including a relative working directory', () => {

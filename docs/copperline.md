@@ -42,7 +42,7 @@ The extension runs `copperline-ctl --dap` and maps the shared launch settings:
 | Setting | Copperline behaviour |
 | --- | --- |
 | `program` | Local Amiga executable to run. |
-| `stopOnEntry` | Stop at entry; defaults to true if omitted. |
+| `stopOnEntry` | Stop at entry; defaults to true for launch, false for attach. |
 | `emulatorBin` | Emulator executable (`copperline` in the adapter's arguments). |
 | `emulatorArgs` | Extra emulator flags (`extraArgs` in the adapter's arguments). |
 | `copperlineAdapter` | Adapter executable; defaults to `copperline-ctl`. |
@@ -91,6 +91,10 @@ Then use **Amiga-Assembly: Copperline Attach**:
     }
 }
 ```
+
+The example explicitly stops at the program's entry point. If `stopOnEntry`
+is omitted from an attach configuration, it defaults to false, so the program
+continues when it loads. Set it to true when you want an entry stop.
 
 Alternatively, supply `address` and `token` inside `copperlineOptions`.
 Disconnecting an attached session leaves the emulator running; stopping a

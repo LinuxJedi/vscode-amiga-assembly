@@ -515,7 +515,7 @@
 							},
 							"stopOnEntry": {
 								"type": "boolean",
-								"description": "Automatically stop target after launch (Copperline defaults to true when omitted)",
+								"description": "Stop at the program entry point when it loads (Copperline defaults to false when omitted)",
 								"default": false
 							},
 							"trace": {

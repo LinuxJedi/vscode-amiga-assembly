@@ -91,6 +91,17 @@ describe('Copperline integration', function () {
             emulatorBin: binary, stopOnEntry: true, copperlineOptions };
     }
 
+    async function startEmulator() {
+        const controlInfo = path.join(directory, 'control.json');
+        fs.rmSync(controlInfo, { force: true });
+        emulator = spawn(binary, ['--factory', '--noaudio', '--control', ':0', '--control-info', controlInfo, '--run', program], { cwd: directory, stdio: 'ignore' });
+        const info = await until(() => {
+            try { return JSON.parse(fs.readFileSync(controlInfo, 'utf8')) as { listen: string; token: string }; }
+            catch { return undefined; }
+        }, 'control endpoint');
+        return { controlInfo, ...info };
+    }
+
     it('launches through VS Code, binds source breakpoints, steps and reads memory', async () => {
         const breakpoint = new vscode.SourceBreakpoint(new vscode.Location(vscode.Uri.file(source), new vscode.Position(3, 0)));
         breakpoints.push(breakpoint);
@@ -138,13 +149,8 @@ describe('Copperline integration', function () {
 
     for (const connection of ['controlInfo', 'address']) {
         it(`attaches with ${connection} and leaves the emulator alive on disconnect`, async () => {
-            const controlInfo = path.join(directory, 'control.json');
-            fs.rmSync(controlInfo, { force: true });
-            emulator = spawn(binary, ['--factory', '--noaudio', '--control', ':0', '--control-info', controlInfo, '--run', program], { cwd: directory, stdio: 'ignore' });
-            const info = await until(() => {
-                try { return JSON.parse(fs.readFileSync(controlInfo, 'utf8')) as { listen: string; token: string }; }
-                catch { return undefined; }
-            }, 'control endpoint');
+            const info = await startEmulator();
+            const { controlInfo } = info;
             const options = connection === 'controlInfo' ? { controlInfo } : { address: info.listen, token: info.token };
             expect(await vscode.debug.startDebugging(undefined, configuration('attach', options))).to.equal(true);
             await stopped();
@@ -160,4 +166,18 @@ describe('Copperline integration', function () {
             expect(status.result.state).to.equal('paused');
         });
     }
+
+    it('runs to a source breakpoint when attach omits stopOnEntry', async () => {
+        const breakpoint = new vscode.SourceBreakpoint(new vscode.Location(vscode.Uri.file(source), new vscode.Position(6, 0)));
+        breakpoints.push(breakpoint);
+        vscode.debug.addBreakpoints([breakpoint]);
+        const { controlInfo } = await startEmulator();
+        const config = configuration('attach', { controlInfo });
+        delete config.stopOnEntry;
+        expect(await vscode.debug.startDebugging(undefined, config)).to.equal(true);
+        const hit = await stopped();
+        expect(hit.body.reason).to.equal('breakpoint');
+        const stack: DebugProtocol.StackTraceResponse['body'] = await session!.customRequest('stackTrace', { threadId: 1 });
+        expect(stack.stackFrames[0].line).to.equal(7);
+    });
 });

@@ -37,7 +37,7 @@ export class CopperlineConfigurationProvider implements vscode.DebugConfiguratio
                 resolved[key] = options[key];
             }
         }
-        resolved.stopOnEntry = config.noDebug ? false : (config.stopOnEntry ?? true);
+        resolved.stopOnEntry = config.noDebug ? false : (config.stopOnEntry ?? (config.request === 'launch'));
         if (config.request === 'launch') {
             if (config.emulatorBin) {
                 resolved.copperline = config.emulatorBin;
